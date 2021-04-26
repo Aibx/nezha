@@ -35,11 +35,10 @@ var (
 )
 
 var (
-	reporting      bool
 	client         pb.NezhaServiceClient
 	ctx            = context.Background()
-	delayWhenError = time.Second * 10       // Agent 重连间隔
-	updateCh       = make(chan struct{}, 0) // Agent 自动更新间隔
+	delayWhenError = time.Second * 10    // Agent 重连间隔
+	updateCh       = make(chan struct{}) // Agent 自动更新间隔
 	httpClient     = &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -56,17 +55,17 @@ func doSelfUpdate() {
 		updateCh <- struct{}{}
 	}()
 	v := semver.MustParse(version)
-	log.Println("Check update", v)
+	println("Check update", v)
 	latest, err := selfupdate.UpdateSelf(v, "naiba/nezha")
 	if err != nil {
-		log.Println("Binary update failed:", err)
+		println("Binary update failed:", err)
 		return
 	}
 	if latest.Version.Equals(v) {
 		// latest version is the same as current version. It means current binary is up to date.
-		log.Println("Current binary is the latest version", version)
+		println("Current binary is the latest version", version)
 	} else {
-		log.Println("Successfully updated to version", latest.Version)
+		println("Successfully updated to version", latest.Version)
 		os.Exit(1)
 	}
 }
@@ -121,18 +120,18 @@ func run() {
 	var conn *grpc.ClientConn
 
 	retry := func() {
-		log.Println("Error to close connection ...")
+		println("Error to close connection ...")
 		if conn != nil {
 			conn.Close()
 		}
 		time.Sleep(delayWhenError)
-		log.Println("Try to reconnect ...")
+		println("Try to reconnect ...")
 	}
 
 	for {
 		conn, err = grpc.Dial(server, grpc.WithInsecure(), grpc.WithPerRPCCredentials(&auth))
 		if err != nil {
-			log.Printf("grpc.Dial err: %v", err)
+			println("grpc.Dial err: ", err)
 			retry()
 			continue
 		}
@@ -140,26 +139,26 @@ func run() {
 		// 第一步注册
 		_, err = client.ReportSystemInfo(ctx, monitor.GetHost().PB())
 		if err != nil {
-			log.Printf("client.ReportSystemInfo err: %v", err)
+			println("client.ReportSystemInfo err: ", err)
 			retry()
 			continue
 		}
 		// 执行 Task
 		tasks, err := client.RequestTask(ctx, monitor.GetHost().PB())
 		if err != nil {
-			log.Printf("client.RequestTask err: %v", err)
+			println("client.RequestTask err: ", err)
 			retry()
 			continue
 		}
 		err = receiveTasks(tasks)
-		log.Printf("receiveTasks exit to main: %v", err)
+		println("receiveTasks exit to main: ", err)
 		retry()
 	}
 }
 
 func receiveTasks(tasks pb.NezhaService_RequestTaskClient) error {
 	var err error
-	defer log.Printf("receiveTasks exit %v => %v", time.Now(), err)
+	defer println("receiveTasks exit", time.Now(), "=>", err)
 	for {
 		var task *pb.Task
 		task, err = tasks.Recv()
@@ -179,12 +178,14 @@ func doTask(task *pb.Task) {
 		start := time.Now()
 		resp, err := httpClient.Get(task.GetData())
 		if err == nil {
-			result.Delay = float32(time.Now().Sub(start).Microseconds()) / 1000.0
+			// 检查 HTTP Response 状态
+			result.Delay = float32(time.Since(start).Microseconds()) / 1000.0
 			if resp.StatusCode > 399 || resp.StatusCode < 200 {
 				err = errors.New("\n应用错误：" + resp.Status)
 			}
 		}
 		if err == nil {
+			// 检查 SSL 证书信息
 			if strings.HasPrefix(task.GetData(), "https://") {
 				c := cert.NewCert(task.GetData()[8:])
 				if c.Error != "" {
@@ -197,6 +198,7 @@ func doTask(task *pb.Task) {
 				result.Successful = true
 			}
 		} else {
+			// HTTP 请求失败
 			result.Data = err.Error()
 		}
 	case model.TaskTypeICMPPing:
@@ -219,7 +221,7 @@ func doTask(task *pb.Task) {
 		if err == nil {
 			conn.Write([]byte("ping\n"))
 			conn.Close()
-			result.Delay = float32(time.Now().Sub(start).Microseconds()) / 1000.0
+			result.Delay = float32(time.Since(start).Microseconds()) / 1000.0
 			result.Successful = true
 		} else {
 			result.Data = err.Error()
@@ -260,9 +262,9 @@ func doTask(task *pb.Task) {
 			result.Data = string(output)
 			result.Successful = true
 		}
-		result.Delay = float32(time.Now().Sub(startedAt).Seconds())
+		result.Delay = float32(time.Since(startedAt).Seconds())
 	default:
-		log.Printf("Unknown action: %v", task)
+		println("Unknown action: ", task)
 	}
 	client.ReportTask(ctx, &result)
 }
@@ -270,13 +272,13 @@ func doTask(task *pb.Task) {
 func reportState() {
 	var lastReportHostInfo time.Time
 	var err error
-	defer log.Printf("reportState exit %v => %v", time.Now(), err)
+	defer println("reportState exit", time.Now(), "=>", err)
 	for {
 		if client != nil {
 			monitor.TrackNetworkSpeed()
 			_, err = client.ReportSystemState(ctx, monitor.GetState(dao.ReportDelay).PB())
 			if err != nil {
-				log.Printf("reportState error %v", err)
+				println("reportState error", err)
 				time.Sleep(delayWhenError)
 			}
 			if lastReportHostInfo.Before(time.Now().Add(-10 * time.Minute)) {
@@ -284,5 +286,11 @@ func reportState() {
 				client.ReportSystemInfo(ctx, monitor.GetHost().PB())
 			}
 		}
+	}
+}
+
+func println(v ...interface{}) {
+	if dao.Conf.Debug {
+		log.Println(v...)
 	}
 }

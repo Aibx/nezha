@@ -1,12 +1,12 @@
 <div align="center" style="background-color: white">
   <img width="500" style="max-width:100%" src="https://raw.githubusercontent.com/naiba/nezha/master/resource/static/brand.png" title="哪吒监控">
   <br><br>
-<img src="https://img.shields.io/github/workflow/status/naiba/nezha/Dashboard%20image?label=Dash%20v0.4.14&logo=github&style=for-the-badge">&nbsp;<img src="https://img.shields.io/github/v/release/naiba/nezha?color=brightgreen&label=Agent&style=for-the-badge&logo=github">&nbsp;<img src="https://img.shields.io/github/workflow/status/naiba/nezha/Agent%20release?label=Agent%20CI&logo=github&style=for-the-badge">&nbsp;<img src="https://img.shields.io/badge/Installer-v0.4.9-brightgreen?style=for-the-badge&logo=linux">
+<img src="https://img.shields.io/github/workflow/status/naiba/nezha/Dashboard%20image?label=Dash%20v0.6.6&logo=github&style=for-the-badge">&nbsp;<img src="https://img.shields.io/github/v/release/naiba/nezha?color=brightgreen&label=Agent&style=for-the-badge&logo=github">&nbsp;<img src="https://img.shields.io/github/workflow/status/naiba/nezha/Agent%20release?label=Agent%20CI&logo=github&style=for-the-badge">&nbsp;<img src="https://img.shields.io/badge/Installer-v0.4.10-brightgreen?style=for-the-badge&logo=linux">
   <br>
   <p>:trollface: 哪吒监控 一站式轻监控轻运维系统。支持系统状态、HTTP(SSL 证书变更、即将到期、到期)、TCP、Ping 监控报警，命令批量执行和计划任务。</p>	
 </div>
 
-\>> QQ 交流群： ~~955957790~~ 各式心态的人都有，解散了省心，**自2021年3月26起不再提供任何支持，接受PR，但不再更新。**
+\>> QQ 交流群：872069346 **加群要求：已搭建好哪吒监控 & 有 2+ 服务器**
 
 \>> [我们的用户](https://www.google.com/search?q="powered+by+哪吒监控%7C哪吒面板"&filter=0) (Google)
 
@@ -23,15 +23,12 @@ curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -
 ./nezha.sh
 ```
 
-<details>
-    <summary>国内镜像加速：（有缓存，版本更新不及时，能不用尽量不用，非作者维护）</summary>
+国内镜像加速：
 
 ```shell
-curl -L https://raw.sevencdn.com/naiba/nezha/master/script/install.sh -o nezha.sh && chmod +x nezha.sh
+curl -L https://cdn.jsdelivr.net/gh/naiba/nezha@master/script/install.sh -o nezha.sh && chmod +x nezha.sh
 CN=true ./nezha.sh
 ```
-
-</details>
 
 _\* 使用 WatchTower 可以自动更新面板，Windows 终端可以使用 nssm 配置自启动（见尾部教程）_
 
