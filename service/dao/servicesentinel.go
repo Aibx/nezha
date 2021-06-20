@@ -275,7 +275,9 @@ func (ss *ServiceSentinel) worker() {
 		}
 		stateStr := getStateStr(upPercent)
 		if Conf.Debug {
-			log.Println(ss.monitors[mh.MonitorID].Target, stateStr, "Agent:", r.Reporter, "Successful:", mh.Successful, "Response:", mh.Data)
+			ServerLock.RLock()
+			log.Println("服务监控上报:", ss.monitors[mh.MonitorID].Target, stateStr, "上报者:", ServerList[r.Reporter].Name, "是否正常:", mh.Successful, "请求输出:", mh.Data)
+			ServerLock.RUnlock()
 		}
 		if stateStr == "故障" || stateStr != ss.lastStatus[mh.MonitorID] {
 			ss.monitorsLock.RLock()
@@ -316,6 +318,7 @@ func (ss *ServiceSentinel) worker() {
 					expiresOld, _ = time.Parse("2006-01-02 15:04:05 -0700 MST", oldCert[1])
 				}
 				if oldCert[0] != newCert[0] && !expiresNew.Equal(expiresOld) {
+					ss.sslCertCache[mh.MonitorID] = mh.Data
 					errMsg = fmt.Sprintf(
 						"SSL证书变更，旧：%s, %s 过期；新：%s, %s 过期。",
 						oldCert[0], expiresOld.Format("2006-01-02 15:04:05"), newCert[0], expiresNew.Format("2006-01-02 15:04:05"))
